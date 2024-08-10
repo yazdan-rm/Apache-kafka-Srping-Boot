@@ -5,6 +5,7 @@ import com.appsdeveloperblog.products.model.Product;
 import com.appsdeveloperblog.products.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
 import org.springframework.stereotype.Service;
@@ -30,8 +31,12 @@ public class ProductServiceImpl implements ProductService {
                 productId, product.getTitle(), product.getPrice(), product.getQuantity()
         );
 
+        ProducerRecord<String, Object> producerRecord = new ProducerRecord<>(
+                "product-created-events-topic", productId, productCreatedEvent);
+        producerRecord.headers().add("messageId", UUID.randomUUID().toString().getBytes());
+
         CompletableFuture<SendResult<String, Object>> future =
-                kafkaTemplate.send("product-created-events-topic", productId, productCreatedEvent);
+                kafkaTemplate.send(producerRecord);
 
         future.whenComplete((result, exception)->{
             if(exception != null) {
